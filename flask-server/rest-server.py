@@ -60,6 +60,14 @@ def not_found(error):
 def not_found(error):
     return make_response(jsonify( { 'error': 'Not found' } ), 404)
 
+
+# GET ROOT
+@app.route('/', methods = ['GET'])
+#@auth.login_required
+def root():
+    return "Hello World"
+
+
 # GET ALL TASKS
 @app.route('/todo/api/v1.0/tasks', methods = ['GET'])
 @auth.login_required
@@ -71,27 +79,23 @@ def get_tasks():
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['GET'])
 @auth.login_required
 def get_task(task_id):
-    task = filter(lambda t: t['id'] == task_id, tasks)
-    if len(task) == 0:
-        abort(404)
-    return jsonify( { 'task': make_public_task(task[0]) } )
+    task = query_db('select * from users where id=?;',[task_id])
+    return jsonify( { 'task': task } )
 
-# POST
+# POST TASK
 @app.route('/todo/api/v1.0/tasks', methods = ['POST'])
 @auth.login_required
 def create_task():
+    print request
     if not request.json or not 'title' in request.json:
         abort(400)
     task = {
-        'id': tasks[-1]['id'] + 1,
         'title': request.json['title'],
         'description': request.json.get('description', ""),
         'done': False
     }
     tasks.append(task)
     return jsonify( { 'task': make_public_task(task) } ), 201
-
-
 
 # PUT
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['PUT'])
