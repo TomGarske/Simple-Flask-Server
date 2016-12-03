@@ -2,20 +2,56 @@
 from flask import Flask, jsonify, abort, request, make_response, url_for
 from flask.ext.httpauth import HTTPBasicAuth
 
+
+# database initialization
+import sqlite3
+import json
+from flask import g
+
+DATABASE = '../sqllite-database/csciAppDev.db'
+print DATABASE
+
+def dict_factory(cursor, row):
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
+
+def query_db(query, args=()):
+    connection = sqlite3.connect(DATABASE)
+    connection.row_factory = dict_factory
+    cursor = connection.cursor()
+    cursor.execute(query,args)
+    results = cursor.fetchall()
+    cursor.close()
+    return results
+
+def make_dicts(cursor, row):
+    return dict((cursor.description[idx][0], value)
+                for idx, value in enumerate(row))
+
 app = Flask(__name__, static_url_path = "")
 auth = HTTPBasicAuth()
 
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_csciAppDev', None)
+    if db is not None:
+        db.close()
+
+# Authentication
 @auth.get_password
 def get_password(username):
     if username == 'miguel':
         return 'python'
     return None
 
+# ERROR HANDLING
 @auth.error_handler
 def unauthorized():
     return make_response(jsonify( { 'error': 'Unauthorized access' } ), 403)
-    # return 403 instead of 401 to prevent browsers from displaying the default auth dialog
-    
+# return 403 instead of 401 to prevent browsers from displaying the default auth dialog
+
 @app.errorhandler(400)
 def not_found(error):
     return make_response(jsonify( { 'error': 'Bad request' } ), 400)
@@ -24,35 +60,14 @@ def not_found(error):
 def not_found(error):
     return make_response(jsonify( { 'error': 'Not found' } ), 404)
 
-tasks = [
-    {
-        'id': 1,
-        'title': u'Buy groceries',
-        'description': u'Milk, Cheese, Pizza, Fruit, Tylenol', 
-        'done': False
-    },
-    {
-        'id': 2,
-        'title': u'Learn Python',
-        'description': u'Need to find a good Python tutorial on the web', 
-        'done': False
-    }
-]
-
-def make_public_task(task):
-    new_task = {}
-    for field in task:
-        if field == 'id':
-            new_task['uri'] = url_for('get_task', task_id = task['id'], _external = True)
-        else:
-            new_task[field] = task[field]
-    return new_task
-    
+# GET ALL TASKS
 @app.route('/todo/api/v1.0/tasks', methods = ['GET'])
 @auth.login_required
 def get_tasks():
-    return jsonify( { 'tasks': map(make_public_task, tasks) } )
+    tasks = query_db('select * from users;')
+    return jsonify( { 'tasks': tasks } )
 
+# GET TASK<ID>
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['GET'])
 @auth.login_required
 def get_task(task_id):
@@ -61,6 +76,7 @@ def get_task(task_id):
         abort(404)
     return jsonify( { 'task': make_public_task(task[0]) } )
 
+# POST
 @app.route('/todo/api/v1.0/tasks', methods = ['POST'])
 @auth.login_required
 def create_task():
@@ -75,6 +91,9 @@ def create_task():
     tasks.append(task)
     return jsonify( { 'task': make_public_task(task) } ), 201
 
+
+
+# PUT
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['PUT'])
 @auth.login_required
 def update_task(task_id):
@@ -93,7 +112,10 @@ def update_task(task_id):
     task[0]['description'] = request.json.get('description', task[0]['description'])
     task[0]['done'] = request.json.get('done', task[0]['done'])
     return jsonify( { 'task': make_public_task(task[0]) } )
-    
+
+
+
+# DELETE
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['DELETE'])
 @auth.login_required
 def delete_task(task_id):
@@ -102,6 +124,10 @@ def delete_task(task_id):
         abort(404)
     tasks.remove(task[0])
     return jsonify( { 'result': True } )
-    
+
+
+
+
+
 if __name__ == '__main__':
     app.run(debug = True)
