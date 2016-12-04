@@ -1,15 +1,13 @@
 #!flask/bin/python
 from flask import Flask, jsonify, abort, request, make_response, url_for
 from flask.ext.httpauth import HTTPBasicAuth
-
-
-# database initialization
 import sqlite3
 import json
 from flask import g
 
 DATABASE = 'sqllite-database/csciAppDev.db'
 print DATABASE
+
 
 def dict_factory(cursor, row):
     d = {}
@@ -18,14 +16,14 @@ def dict_factory(cursor, row):
     return d
 
 def query_db(query, args=()):
-    connection = sqlite3.connect(DATABASE)
-    connection.row_factory = dict_factory
-    cursor = connection.cursor()
-    cursor.execute(query,args)
-    connection.commit()
-    results = cursor.fetchall()
-    cursor.close()
-    return results
+	connection = sqlite3.connect(DATABASE)
+	connection.row_factory = dict_factory
+	cursor = connection.cursor()
+	cursor.execute(query,args)
+	connection.commit()
+	results = cursor.fetchall()
+	cursor.close()
+	return results
 
 def make_dicts(cursor, row):
     return dict((cursor.description[idx][0], value)
@@ -47,7 +45,6 @@ def get_password(username):
         return 'python'
     return None
 
-# ERROR HANDLING
 @auth.error_handler
 def unauthorized():
     return make_response(jsonify( { 'error': 'Unauthorized access' } ), 403)
@@ -61,21 +58,20 @@ def not_found(error):
 def not_found(error):
     return make_response(jsonify( { 'error': 'Not found' } ), 404)
 
-# GET ALL TASKS
+
 @app.route('/todo/api/v1.0/tasks', methods = ['GET'])
 @auth.login_required
 def get_tasks():
     tasks = query_db('select * from users;')
     return jsonify( { 'tasks': tasks } )
 
-# GET TASK<ID>
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['GET'])
 @auth.login_required
 def get_task(task_id):
     task = query_db('select * from users where id=?;',[task_id])
     return jsonify( { 'task': task } )
 
-# POST TASK
+# POST
 @app.route('/todo/api/v1.0/tasks', methods = ['POST'])
 @auth.login_required
 def create_task():
@@ -93,22 +89,11 @@ def create_task():
 # PUT
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['PUT'])
 @auth.login_required
-def update_task(task_id):
-    task = filter(lambda t: t['id'] == task_id, tasks)
-    if len(task) == 0:
-        abort(404)
-    if not request.json:
-        abort(400)
-    if 'title' in request.json and type(request.json['title']) != unicode:
-        abort(400)
-    if 'description' in request.json and type(request.json['description']) is not unicode:
-        abort(400)
-    if 'done' in request.json and type(request.json['done']) is not bool:
-        abort(400)
-    task[0]['title'] = request.json.get('title', task[0]['title'])
-    task[0]['description'] = request.json.get('description', task[0]['description'])
-    task[0]['done'] = request.json.get('done', task[0]['done'])
-    return jsonify( { 'task': make_public_task(task[0]) } )
+def update_task(task_id):        
+    query = "UPDATE users SET title = ?, description = ?, done = ? WHERE ID = ?;"
+    query_db(query, ( request.json.get('title', ""), request.json.get('description', ""), request.json.get('done'), task_id ))
+    task = query_db('select * from users where id=?;',[task_id])
+    return jsonify( { 'task': task } )
 
 # DELETE
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['DELETE'])
