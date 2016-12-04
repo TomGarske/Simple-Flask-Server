@@ -8,7 +8,7 @@ import sqlite3
 import json
 from flask import g
 
-DATABASE = '../sqllite-database/csciAppDev.db'
+DATABASE = 'sqllite-database/csciAppDev.db'
 print DATABASE
 
 def dict_factory(cursor, row):
@@ -22,17 +22,10 @@ def query_db(query, args=()):
     connection.row_factory = dict_factory
     cursor = connection.cursor()
     cursor.execute(query,args)
+    connection.commit()
     results = cursor.fetchall()
     cursor.close()
     return results
-    
-def insert_db(query, args=()):
-    connection = sqlite3.connect(DATABASE)
-    connection.row_factory = dict_factory
-    cursor = connection.cursor()
-    cursor.execute(query,args)
-    cursor.close()
-    return
 
 def make_dicts(cursor, row):
     return dict((cursor.description[idx][0], value)
@@ -72,16 +65,6 @@ def not_found(error):
 @app.route('/todo/api/v1.0/tasks', methods = ['GET'])
 @auth.login_required
 def get_tasks():
-    """This function does something.
-
-    :param name: The name to use. 
-    :type name: str. 
-    :param state: Current state to be in. 
-    :type state: bool. 
-    :returns: int -- the return code. 
-    :raises: AttributeError, KeyError
-
-    """ 
     tasks = query_db('select * from users;')
     return jsonify( { 'tasks': tasks } )
 
@@ -96,15 +79,15 @@ def get_task(task_id):
 @app.route('/todo/api/v1.0/tasks', methods = ['POST'])
 @auth.login_required
 def create_task():
-    print request
     if not request.json or not 'title' in request.json:
         abort(400)
     task = {
         'title': request.json['title'],
         'description': request.json.get('description', ""),
-        'done': False
+        'done': 0
     }
-    
+    query = "INSERT INTO users (title, description, done) VALUES (?,?,0);"
+    query_db(query, (request.json.get('title', ""), request.json.get('description', "")))
     return jsonify( { 'task': task } ), 201
 
 # PUT
@@ -126,8 +109,6 @@ def update_task(task_id):
     task[0]['description'] = request.json.get('description', task[0]['description'])
     task[0]['done'] = request.json.get('done', task[0]['done'])
     return jsonify( { 'task': make_public_task(task[0]) } )
-
-
 
 # DELETE
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['DELETE'])
