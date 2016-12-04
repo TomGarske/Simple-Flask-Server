@@ -25,6 +25,14 @@ def query_db(query, args=()):
     results = cursor.fetchall()
     cursor.close()
     return results
+    
+def insert_db(query, args=()):
+    connection = sqlite3.connect(DATABASE)
+    connection.row_factory = dict_factory
+    cursor = connection.cursor()
+    cursor.execute(query,args)
+    cursor.close()
+    return
 
 def make_dicts(cursor, row):
     return dict((cursor.description[idx][0], value)
@@ -60,14 +68,6 @@ def not_found(error):
 def not_found(error):
     return make_response(jsonify( { 'error': 'Not found' } ), 404)
 
-
-# GET ROOT
-@app.route('/', methods = ['GET'])
-#@auth.login_required
-def root():
-    return "Hello World"
-
-
 # GET ALL TASKS
 @app.route('/todo/api/v1.0/tasks', methods = ['GET'])
 @auth.login_required
@@ -94,8 +94,8 @@ def create_task():
         'description': request.json.get('description', ""),
         'done': False
     }
-    tasks.append(task)
-    return jsonify( { 'task': make_public_task(task) } ), 201
+    
+    return jsonify( { 'task': task } ), 201
 
 # PUT
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['PUT'])
