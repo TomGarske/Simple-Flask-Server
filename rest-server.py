@@ -38,7 +38,6 @@ def close_connection(exception):
     if db is not None:
         db.close()
 
-# Authentication
 @auth.get_password
 def get_password(username):
     if username == 'miguel':
@@ -57,8 +56,7 @@ def not_found(error):
 @app.errorhandler(404)
 def not_found(error):
     return make_response(jsonify( { 'error': 'Not found' } ), 404)
-
-
+    
 @app.route('/todo/api/v1.0/tasks', methods = ['GET'])
 @auth.login_required
 def get_tasks():
@@ -71,7 +69,6 @@ def get_task(task_id):
     task = query_db('select * from users where id=?;',[task_id])
     return jsonify( { 'task': task } )
 
-# POST
 @app.route('/todo/api/v1.0/tasks', methods = ['POST'])
 @auth.login_required
 def create_task():
@@ -86,7 +83,6 @@ def create_task():
     query_db(query, (request.json.get('title', ""), request.json.get('description', "")))
     return jsonify( { 'task': task } ), 201
 
-# PUT
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['PUT'])
 @auth.login_required
 def update_task(task_id):        
@@ -95,19 +91,12 @@ def update_task(task_id):
     task = query_db('select * from users where id=?;',[task_id])
     return jsonify( { 'task': task } )
 
-# DELETE
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['DELETE'])
 @auth.login_required
 def delete_task(task_id):
-    task = filter(lambda t: t['id'] == task_id, tasks)
-    if len(task) == 0:
-        abort(404)
-    tasks.remove(task[0])
+    query = "DELETE FROM users WHERE ID = ?;"
+    query_db(query, [task_id])
     return jsonify( { 'result': True } )
-
-
-
-
 
 if __name__ == '__main__':
     app.run(debug = True)
