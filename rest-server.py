@@ -72,6 +72,16 @@ def not_found(error):
 @app.route('/todo/api/v1.0/tasks', methods = ['GET'])
 @auth.login_required
 def get_tasks():
+    """This function does something.
+
+    :param name: The name to use. 
+    :type name: str. 
+    :param state: Current state to be in. 
+    :type state: bool. 
+    :returns: int -- the return code. 
+    :raises: AttributeError, KeyError
+
+    """ 
     tasks = query_db('select * from users;')
     return jsonify( { 'tasks': tasks } )
 
