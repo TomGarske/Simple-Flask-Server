@@ -5,7 +5,7 @@ import sqlite3
 import json
 from flask import g
 
-DATABASE = 'sqllite-database/csciAppDev.db'
+DATABASE = 'sqllite-database/csciApp.db'
 print DATABASE
 
 
@@ -57,6 +57,15 @@ def not_found(error):
 def not_found(error):
     return make_response(jsonify( { 'error': 'Not found' } ), 404)
     
+@app.route('/dev/api/motiondata', methods = ['POST'])
+def save_testdata():
+    query = "INSERT INTO MotionData_dev (xAxis, yAxis, zAxis, timeStep) VALUES (?,?,?,?);"
+    query_db(query, (request.json.get('x', ''), 
+    				 request.json.get('y', ''),
+    				 request.json.get('z', ''),
+    				 request.json.get('t', '')))
+    return make_response(jsonify( { 'success': True } ), 201)
+    
 @app.route('/todo/api/v1.0/tasks', methods = ['GET'])
 @auth.login_required
 def get_tasks():
@@ -99,4 +108,4 @@ def delete_task(task_id):
     return jsonify( { 'result': True } )
 
 if __name__ == '__main__':
-    app.run(debug = True)
+    app.run(debug = True,host='0.0.0.0')
