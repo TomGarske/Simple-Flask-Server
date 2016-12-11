@@ -5,7 +5,7 @@ import sqlite3
 import json
 from flask import g
 
-DATABASE = 'sqllite-database/csciApp.db'
+DATABASE = 'sqlite-database/csciApp.db'
 print DATABASE
 
 
