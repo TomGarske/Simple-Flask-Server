@@ -5,8 +5,79 @@ import sqlite3
 import json
 from flask import g
 
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import sqlite3 as lite
+import sys
+import pylab
+from scipy.fftpack import rfft, irfft, fftfreq
+import math
+import matplotlib.pyplot as pp
+
 DATABASE = 'sqlite-database/csciApp.db'
 print DATABASE
+
+
+############
+# Function Definitions for Heartrate
+######
+def common_elements(list1, list2):
+    result = []
+    for element in list1:
+        if element in list2:
+            result.append(element)
+    return result
+    
+def merge_arrays(array, array2):
+    for i in range(0,len(array2)):
+        array = find_nearest(array,array2[i],5)
+    return common_elements(array2,array)
+
+def merge_nearest(array):
+    for i in range(0,len(array)):
+        array = find_nearest(array,array[i],10)
+    return np.unique(array)
+
+def find_nearest(array,value,wsize):
+    idx = (np.abs(array-value)<=wsize)
+    array[idx] = value
+    return array
+
+outliers = 0.025
+threshTop = 0.45
+threshBot = -0.45
+def findHeartRate(v):
+    dv = np.gradient(v)
+    dv[dv>outliers] = outliers
+    dv[dv<-outliers] = -outliers
+    norm = np.array([float(d)/max(dv) for d in dv])
+    
+    pulses = norm.copy()
+    pulses[pulses<threshBot] = -1
+    pulses[pulses>threshTop] = 1
+    pulses[abs(pulses)!=1] = 0
+    
+    top = np.where(pulses==1)[0]
+    top = merge_nearest(top.copy())
+    bot = np.where(pulses==-1)[0]
+    bot = merge_nearest(bot.copy())
+    intersect = merge_arrays(top.copy(),bot.copy())
+        
+    return len(intersect) ##len(top),  len(bot), 
+
+def calculateHR(v,dtarray):
+    dt = np.mean(dtarray)/1000.0
+    secs = len(v)*dt
+    perMin = secs/60.0
+    print "{0} items".format(len(v))
+    print "{0} Seconds, {1} dt, {2} PerMin".format(secs, dt, perMin)
+    count = findHeartRate(v)
+    rate = count/perMin
+    print "{0} BPM".format(rate)
+    return rate
+
+############
 
 
 def dict_factory(cursor, row):
@@ -57,6 +128,16 @@ def not_found(error):
 def not_found(error):
     return make_response(jsonify( { 'error': 'Not found' } ), 404)
     
+    
+@app.route('/api/v1.0/heartrate/<int:user_id>', methods = ['POST'])
+def calculateHeartrateForUser(user_id):        
+    v = request.json.get('values', "")
+    dtarray = request.json.get('dt', "")
+    bpm = calculateHR(v,dtarray)
+    query = "INSERT INTO history (user, rateType, recordedValue)  VALUES (?,'heart',?);"
+    query_db(query, ( user_id, bpm))
+    return make_response(jsonify( { 'heartrate': bpm } ), 201)
+
 @app.route('/dev/api/motiondata', methods = ['POST'])
 def save_testdata():
     query = "INSERT INTO MotionData_dev (xAxis, yAxis, zAxis, timeStep) VALUES (?,?,?,?);"
