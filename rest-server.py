@@ -163,6 +163,12 @@ def calculateHeartrateForUser(user_id):
     query_db(query, ( user_id, bpm))
     return make_response(jsonify( { 'heartrate': bpm } ), 201)
 
+@app.route('/api/v1.0/heartrate/<int:user_id>', methods = ['GET'])
+def get_heartrateHistory(user_id):
+    query = "SELECT recordedDatetime,recordedValue FROM history WHERE rateType = 'heart' AND user = ?;"
+    items = query_db(query,[user_id])
+    return make_response(jsonify( { 'items': items } ), 201)
+
 @app.route('/api/v1.0/breathing/<int:user_id>', methods = ['POST'])
 def calculateBreathingrateForUser(user_id):        
     v = request.json.get('values', "")
@@ -171,6 +177,12 @@ def calculateBreathingrateForUser(user_id):
     query = "INSERT INTO history (user, rateType, recordedValue)  VALUES (?,'breathing',?);"
     query_db(query, ( user_id, bpm))
     return make_response(jsonify( { 'breathing': bpm } ), 201)
+    
+@app.route('/api/v1.0/breathing/<int:user_id>', methods = ['GET'])
+def get_breathingHistory(user_id):
+    query = "SELECT recordedDatetime,recordedValue FROM history WHERE rateType = 'breathing' AND user = ?;"
+    items = query_db(query,[user_id])
+    return make_response(jsonify( { 'items': items } ), 201)
 
 @app.route('/dev/api/motiondata', methods = ['POST'])
 def save_testdata():
