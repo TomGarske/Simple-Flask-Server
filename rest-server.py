@@ -20,8 +20,33 @@ print DATABASE
 
 
 ############
+# Function Definitions for Breathing Rate
+############
+
+def filter_signal(sig,dt):
+    signal = np.array(sig)
+    N = len(signal)
+    W = fftfreq(N, dt)
+    
+    f_signal = rfft(signal)
+    cut_f_signal = f_signal.copy()
+    cut_f_signal[(W>.67)] = 0
+    cut_f_signal[(W<0.2)] = 0
+    freq = W[np.argmax(np.abs(cut_f_signal))]
+    
+    cut_signal = irfft(cut_f_signal)       
+    return freq
+
+def calculateBR(v, dtarray):
+    dt = np.mean(dtarray)/1000.0
+    freq = filter_signal(v,dt)
+    print "Detected Frequency: {0} Hz".format(freq)
+    print "Breaths per minute: {0}".format(60.0*freq)
+    return 60.0*freq
+
+############
 # Function Definitions for Heartrate
-######
+############
 def common_elements(list1, list2):
     result = []
     for element in list1:
@@ -137,6 +162,15 @@ def calculateHeartrateForUser(user_id):
     query = "INSERT INTO history (user, rateType, recordedValue)  VALUES (?,'heart',?);"
     query_db(query, ( user_id, bpm))
     return make_response(jsonify( { 'heartrate': bpm } ), 201)
+
+@app.route('/api/v1.0/breathing/<int:user_id>', methods = ['POST'])
+def calculateBreathingrateForUser(user_id):        
+    v = request.json.get('values', "")
+    dtarray = request.json.get('dt', "")
+    bpm = calculateBR(v,dtarray)
+    query = "INSERT INTO history (user, rateType, recordedValue)  VALUES (?,'breathing',?);"
+    query_db(query, ( user_id, bpm))
+    return make_response(jsonify( { 'breathing': bpm } ), 201)
 
 @app.route('/dev/api/motiondata', methods = ['POST'])
 def save_testdata():
