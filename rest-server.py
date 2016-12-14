@@ -212,47 +212,6 @@ def save_testdata():
     				 request.json.get('z', ''),
     				 request.json.get('t', '')))
     return make_response(jsonify( { 'success': True } ), 201)
-    
-@app.route('/todo/api/v1.0/tasks', methods = ['GET'])
-@auth.login_required
-def get_tasks():
-    tasks = query_db('select * from users;')
-    return jsonify( { 'tasks': tasks } )
-
-@app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['GET'])
-@auth.login_required
-def get_task(task_id):
-    task = query_db('select * from users where id=?;',[task_id])
-    return jsonify( { 'task': task } )
-
-@app.route('/todo/api/v1.0/tasks', methods = ['POST'])
-@auth.login_required
-def create_task():
-    if not request.json or not 'title' in request.json:
-        abort(400)
-    task = {
-        'title': request.json['title'],
-        'description': request.json.get('description', ""),
-        'done': 0
-    }
-    query = "INSERT INTO users (title, description, done) VALUES (?,?,0);"
-    query_db(query, (request.json.get('title', ""), request.json.get('description', "")))
-    return jsonify( { 'task': task } ), 201
-
-@app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['PUT'])
-@auth.login_required
-def update_task(task_id):        
-    query = "UPDATE users SET title = ?, description = ?, done = ? WHERE ID = ?;"
-    query_db(query, ( request.json.get('title', ""), request.json.get('description', ""), request.json.get('done'), task_id ))
-    task = query_db('select * from users where id=?;',[task_id])
-    return jsonify( { 'task': task } )
-
-@app.route('/todo/api/v1.0/tasks/<int:task_id>', methods = ['DELETE'])
-@auth.login_required
-def delete_task(task_id):
-    query = "DELETE FROM users WHERE ID = ?;"
-    query_db(query, [task_id])
-    return jsonify( { 'result': True } )
 
 if __name__ == '__main__':
     app.run(debug = True,host='0.0.0.0')
