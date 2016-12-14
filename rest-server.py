@@ -136,9 +136,12 @@ def close_connection(exception):
 
 @auth.get_password
 def get_password(username):
+    print username
     if username == 'miguel':
         return 'python'
-    return None
+    query = "select password from users where username = '?';"
+    password = query_db(query,[username])
+    return password
 
 @auth.error_handler
 def unauthorized():
@@ -153,6 +156,23 @@ def not_found(error):
 def not_found(error):
     return make_response(jsonify( { 'error': 'Not found' } ), 404)
     
+    
+@app.route('/api/v1.0/users', methods = ['POST'])
+def createNewUser():        
+    u = request.json.get('username', "")
+    p = request.json.get('password', "")
+    query = "INSERT INTO users (username, password)  VALUES (?,?);"
+    query_db(query, ( u, p))
+    userid = query_db('select id from users where username=? and password=?;',[u,p])
+    return make_response(jsonify( { 'userid': userid } ), 201)
+    
+@app.route('/api/v1.0/users', methods = ['PUT']) 
+@auth.login_required
+def loginExistingUser():        
+    u = request.json.get('username', "")
+    p = request.json.get('password', "")
+    userid = query_db('select id from users where username=? and password=?;',[u,p])
+    return make_response(jsonify( { 'userid': userid } ), 201)
     
 @app.route('/api/v1.0/heartrate/<int:user_id>', methods = ['POST'])
 def calculateHeartrateForUser(user_id):        
