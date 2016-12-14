@@ -161,7 +161,8 @@ def createNewUser():
     query = "INSERT INTO users (username, password)  VALUES (?,?);"
     query_db(query, (u, p))
     userid = query_db('select id from users where username=? and password=?;',[u,p])
-    return make_response(jsonify( { userid[0] } ), 201)
+    id = userid[0]['id']
+    return make_response(jsonify( { 'userid' : id } ), 201)
     
 @app.route('/api/v1.0/userlogin', methods = ['POST']) 
 @auth.login_required
